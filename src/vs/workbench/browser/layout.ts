@@ -42,6 +42,7 @@ export class LayoutOptions {
 }
 
 interface ComputedStyles {
+	titlebar: { height: number; };
 	activitybar: { minWidth: number; };
 	sidebar: { minWidth: number; };
 	panel: { minHeight: number; };
@@ -64,6 +65,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 
 	private parent: Builder;
 	private workbenchContainer: Builder;
+	private titlebar: Part;
 	private activitybar: Part;
 	private editor: Part;
 	private sidebar: Part;
@@ -90,6 +92,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 		parent: Builder,
 		workbenchContainer: Builder,
 		parts: {
+			titlebar: Part,
 			activitybar: Part,
 			editor: Part,
 			sidebar: Part,
@@ -110,6 +113,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 	) {
 		this.parent = parent;
 		this.workbenchContainer = workbenchContainer;
+		this.titlebar = parts.titlebar;
 		this.activitybar = parts.activitybar;
 		this.editor = parts.editor;
 		this.sidebar = parts.sidebar;
@@ -299,6 +303,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 	}
 
 	private computeStyle(): void {
+		const titlebarStyle = this.titlebar.getContainer().getComputedStyle();
 		const sidebarStyle = this.sidebar.getContainer().getComputedStyle();
 		const panelStyle = this.panel.getContainer().getComputedStyle();
 		const editorStyle = this.editor.getContainer().getComputedStyle();
@@ -306,23 +311,22 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 		const statusbarStyle = this.statusbar.getContainer().getComputedStyle();
 
 		this.computedStyles = {
+			titlebar: {
+				height: parseInt(titlebarStyle.getPropertyValue('height'), 10) || 23
+			},
 			activitybar: {
 				minWidth: parseInt(activitybarStyle.getPropertyValue('min-width'), 10) || 0
 			},
-
 			sidebar: {
 				minWidth: parseInt(sidebarStyle.getPropertyValue('min-width'), 10) || DEFAULT_MIN_SIDEBAR_PART_WIDTH
 			},
-
 			panel: {
 				minHeight: parseInt(panelStyle.getPropertyValue('min-height'), 10) || DEFAULT_MIN_PANEL_PART_HEIGHT
 			},
-
 			editor: {
 				minWidth: parseInt(editorStyle.getPropertyValue('min-width'), 10) || DEFAULT_MIN_EDITOR_PART_WIDTH,
 				minHeight: DEFAULT_MIN_EDITOR_PART_HEIGHT
 			},
-
 			statusbar: {
 				height: parseInt(statusbarStyle.getPropertyValue('height'), 10) || 18
 			}
@@ -360,8 +364,9 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 		}
 
 		let statusbarHeight = isStatusbarHidden ? 0 : this.computedStyles.statusbar.height;
+		let titlebarHeight = this.computedStyles.titlebar.height;
 
-		this.sidebarHeight = this.workbenchSize.height - statusbarHeight;
+		this.sidebarHeight = this.workbenchSize.height - statusbarHeight - titlebarHeight;
 		let sidebarSize = new Dimension(sidebarWidth, this.sidebarHeight);
 
 		// Activity Bar
@@ -467,33 +472,33 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 
 		const editorBottom = statusbarHeight + panelDimension.height;
 		if (isSidebarHidden) {
-			this.editor.getContainer().position(0, editorSize.remainderRight, editorBottom, editorSize.remainderLeft);
-			this.panel.getContainer().position(editorSize.height, editorSize.remainderRight, statusbarHeight, editorSize.remainderLeft);
+			this.editor.getContainer().position(titlebarHeight, editorSize.remainderRight, editorBottom, editorSize.remainderLeft);
+			this.panel.getContainer().position(editorSize.height + titlebarHeight, editorSize.remainderRight, statusbarHeight, editorSize.remainderLeft);
 		} else if (sidebarPosition === Position.LEFT) {
-			this.editor.getContainer().position(0, 0, editorBottom, sidebarSize.width + activityBarSize.width);
-			this.panel.getContainer().position(editorSize.height, 0, statusbarHeight, sidebarSize.width + activityBarSize.width);
+			this.editor.getContainer().position(titlebarHeight, 0, editorBottom, sidebarSize.width + activityBarSize.width);
+			this.panel.getContainer().position(editorSize.height + titlebarHeight, 0, statusbarHeight, sidebarSize.width + activityBarSize.width);
 		} else {
-			this.editor.getContainer().position(0, sidebarSize.width, editorBottom, 0);
-			this.panel.getContainer().position(editorSize.height, sidebarSize.width, statusbarHeight, 0);
+			this.editor.getContainer().position(titlebarHeight, sidebarSize.width, editorBottom, 0);
+			this.panel.getContainer().position(editorSize.height + titlebarHeight, sidebarSize.width, statusbarHeight, 0);
 		}
 
 		// Activity Bar Part
 		this.activitybar.getContainer().size(null, activityBarSize.height);
 		if (sidebarPosition === Position.LEFT) {
 			this.activitybar.getContainer().getHTMLElement().style.right = '';
-			this.activitybar.getContainer().position(0, null, 0, 0);
+			this.activitybar.getContainer().position(titlebarHeight, null, 0, 0);
 		} else {
 			this.activitybar.getContainer().getHTMLElement().style.left = '';
-			this.activitybar.getContainer().position(0, 0, 0, null);
+			this.activitybar.getContainer().position(titlebarHeight, 0, 0, null);
 		}
 
 		// Sidebar Part
 		this.sidebar.getContainer().size(sidebarSize.width, sidebarSize.height);
 
 		if (sidebarPosition === Position.LEFT) {
-			this.sidebar.getContainer().position(0, editorSize.width, 0, activityBarSize.width);
+			this.sidebar.getContainer().position(titlebarHeight, editorSize.width, 0, activityBarSize.width);
 		} else {
-			this.sidebar.getContainer().position(0, null, 0, editorSize.width);
+			this.sidebar.getContainer().position(titlebarHeight, null, 0, editorSize.width);
 		}
 
 		// Statusbar Part
@@ -525,7 +530,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 	}
 
 	public getVerticalSashTop(sash: Sash): number {
-		return 0;
+		return this.computedStyles.titlebar.height;
 	}
 
 	public getVerticalSashLeft(sash: Sash): number {
@@ -545,7 +550,7 @@ export class WorkbenchLayout implements IVerticalSashLayoutProvider, IHorizontal
 	}
 
 	public getHorizontalSashTop(sash: Sash): number {
-		return 2 + (this.partService.isPanelHidden() ? this.sidebarHeight : this.sidebarHeight - this.panelHeight); // Horizontal sash should be a bit lower than the editor area, thus add 2px #5524
+		return 2 + (this.partService.isPanelHidden() ? this.sidebarHeight + this.computedStyles.titlebar.height : this.sidebarHeight - this.panelHeight + this.computedStyles.titlebar.height); // Horizontal sash should be a bit lower than the editor area, thus add 2px #5524
 	}
 
 	public getHorizontalSashLeft(sash: Sash): number {
