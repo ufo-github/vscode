@@ -1,3 +1,4 @@
+```js
 {
 // Most Commonly Used
 
@@ -1047,3 +1048,7 @@
   // This option requires restart to take effect.
   "telemetry.enableCrashReporter": true
 }
+
+```
+
+https://code.visualstudio.com/docs/getstarted/settings#_copy-of-default-settings
